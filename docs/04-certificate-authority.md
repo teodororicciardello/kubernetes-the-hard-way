@@ -216,12 +216,13 @@ kube-proxy.pem
 
 The `kubernetes-the-hard-way` static IP address will be included in the list of subject alternative names for the Kubernetes API Server certificate. This will ensure the certificate can be validated by remote clients.
 
-Retrieve the `kubernetes-the-hard-way` static IP address:
+(TODO To replace with AWS load balancer)
+Retrieve the IP address of the first controller:
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
+  --query 'Reservations[].Instances[].PublicIpAddress'| jq .[0] \
+  | sed 's/"//g')
 ```
 
 Create the Kubernetes API Server certificate signing request:
