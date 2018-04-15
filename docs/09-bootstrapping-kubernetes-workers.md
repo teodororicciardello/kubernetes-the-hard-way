@@ -4,10 +4,14 @@ In this lab you will bootstrap three Kubernetes worker nodes. The following comp
 
 ## Prerequisites
 
-The commands in this lab must be run on each worker instance: `worker-0`, `worker-1`, and `worker-2`. Login to each worker instance using the `gcloud` command. Example:
+The commands in this lab must be run on each worker instance. Retrieve the public ip of the instance and login to each worker instance using the `ssh` command. Example for first worker:
 
 ```
-gcloud compute ssh worker-0
+i = 0
+IP=$(aws ec2 describe-instances --instance-id ${WORK_ID[0]}
+  --query 'Reservations[].Instances[].PublicIpAddress' \
+  | jq .[0] | sed 's/"//g')
+ssh -i $KEY_PATH ubuntu@$IP
 ```
 
 ## Provisioning a Kubernetes Worker Node
@@ -63,11 +67,11 @@ sudo mv kubectl kube-proxy kubelet /usr/local/bin/
 
 ### Configure CNI Networking
 
-Retrieve the Pod CIDR range for the current compute instance:
+Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. A $POD_CIDR variable will be used to store the range for the pod subnet for each worker configuration. Example for first worker:
 
 ```
-POD_CIDR=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/attributes/pod-cidr)
+i=0
+POD_CIDR=10.200.${i}.0/24
 ```
 
 Create the `bridge` network configuration file:
@@ -207,14 +211,17 @@ sudo systemctl enable containerd cri-containerd kubelet kube-proxy
 sudo systemctl start containerd cri-containerd kubelet kube-proxy
 ```
 
-> Remember to run the above commands on each worker node: `worker-0`, `worker-1`, and `worker-2`.
+> Remember to run the above commands on each worker node.
 
 ## Verification
 
 Login to one of the controller nodes:
 
 ```
-gcloud compute ssh controller-0
+IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]}
+  --query 'Reservations[].Instances[].PublicIpAddress' \
+  | jq .[0] | sed 's/"//g')
+ssh -i $KEY_PATH ubuntu@$IP
 ```
 
 List the registered Kubernetes nodes:
@@ -227,9 +234,9 @@ kubectl get nodes
 
 ```
 NAME       STATUS    ROLES     AGE       VERSION
-worker-0   Ready     <none>    18s       v1.9.0
-worker-1   Ready     <none>    18s       v1.9.0
-worker-2   Ready     <none>    18s       v1.9.0
+ip-10-240-0-20   Ready     <none>    18s       v1.9.0
+ip-10-240-0-21   Ready     <none>    18s       v1.9.0
+ip-10-240-0-22   Ready     <none>    18s       v1.9.0
 ```
 
 Next: [Configuring kubectl for Remote Access](10-configuring-kubectl.md)

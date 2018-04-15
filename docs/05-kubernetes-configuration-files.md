@@ -12,12 +12,13 @@ In this section you will generate kubeconfig files for the `kubelet` and `kube-p
 
 Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
 
-Retrieve the `kubernetes-the-hard-way` static IP address:
+(TODO To replace with AWS load balancer)
+Retrieve the IP address of the first controller:
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
+  --query 'Reservations[].Instances[].PublicIpAddress'| jq .[0] \
+  | sed 's/"//g')
 ```
 
 ### The kubelet Kubernetes Configuration File
@@ -27,7 +28,8 @@ When generating kubeconfig files for Kubelets the client certificate matching th
 Generate a kubeconfig file for each worker node:
 
 ```
-for instance in worker-0 worker-1 worker-2; do
+for i in 0 1 2; do
+  instance=ip-10-240-0-2$i
   kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=ca.pem \
     --embed-certs=true \
@@ -52,9 +54,9 @@ done
 Results:
 
 ```
-worker-0.kubeconfig
-worker-1.kubeconfig
-worker-2.kubeconfig
+ip-10-240-0-20.kubeconfig
+ip-10-240-0-21.kubeconfig
+ip-10-240-0-22.kubeconfig
 ```
 
 ### The kube-proxy Kubernetes Configuration File
@@ -93,8 +95,12 @@ kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
 Copy the appropriate `kubelet` and `kube-proxy` kubeconfig files to each worker instance:
 
 ```
-for instance in worker-0 worker-1 worker-2; do
-  gcloud compute scp ${instance}.kubeconfig kube-proxy.kubeconfig ${instance}:~/
+for instance in 0 1 2; do
+  instance=ip-10-240-0-2$i
+  IP=$(aws ec2 describe-instances --instance-id ${WORK_ID[i]} \
+    --query 'Reservations[].Instances[].PublicIpAddress'\
+    | jq .[0] | sed 's/"//g')
+  scp -i $KEY_PATH -o "StrictHostKeyChecking no" ${instance}.kubeconfig kube-proxy.kubeconfig ubuntu@$IP:~/
 done
 ```
 

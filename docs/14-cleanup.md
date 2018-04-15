@@ -7,56 +7,55 @@ In this lab you will delete the compute resources created during this tutorial.
 Delete the controller and worker compute instances:
 
 ```
-gcloud -q compute instances delete \
-  controller-0 controller-1 controller-2 \
-  worker-0 worker-1 worker-2
+aws ec2 terminate-instances --instance-ids ${CONTR_ID[@]} 
+
+aws ec2 terminate-instances --instance-ids ${WORK_ID[@]} 
 ```
 
 ## Networking
 
-Delete the external load balancer network resources:
+(TODO Delete the external load balancer):
 
-```
-gcloud -q compute forwarding-rules delete kubernetes-forwarding-rule \
-  --region $(gcloud config get-value compute/region)
 ```
 
 ```
-gcloud -q compute target-pools delete kubernetes-target-pool
-```
 
-Delete the `kubernetes-the-hard-way` static IP address:
+(TODO) Delete the security group firewall rules:
 
 ```
-gcloud -q compute addresses delete kubernetes-the-hard-way
-```
-
-Delete the `kubernetes-the-hard-way` firewall rules:
-
-```
-gcloud -q compute firewall-rules delete \
-  kubernetes-the-hard-way-allow-nginx-service \
-  kubernetes-the-hard-way-allow-internal \
-  kubernetes-the-hard-way-allow-external
 ```
 
 Delete the Pod network routes:
 
 ```
-gcloud -q compute routes delete \
-  kubernetes-route-10-200-0-0-24 \
-  kubernetes-route-10-200-1-0-24 \
-  kubernetes-route-10-200-2-0-24
+for i in 0 1 2; do
+  POD_CIDR=10.200.$i.0/24
+  aws ec2 delete-route --route-table-id $ROUTE_ID --destination-cidr-block $POD_CIDR 
+done 
 ```
 
-Delete the `kubernetes` subnet:
+Delete the subnet:
 
 ```
-gcloud -q compute networks subnets delete kubernetes
+aws ec2 delete-subnet --subnet-id $SUBNET_ID
 ```
 
-Delete the `kubernetes-the-hard-way` network VPC:
+Delete the route table:
 
 ```
-gcloud -q compute networks delete kubernetes-the-hard-way
+aws ec2 delete-route-table --route-table-id $ROUTE_ID
+```
+
+Detach and delete the internet gateway:
+
+```
+aws ec2 detach-internet-gateway --internet-gateway-id $IGW_ID --vpc-id $VPC_ID
+
+aws ec2 delete-internet-gateway --internet-gateway-id $IGW_ID
+```
+
+Finally delete the VPC:
+
+```
+aws ec2 delete-vpc --vpc-id $VPC_ID
 ```

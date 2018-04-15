@@ -4,10 +4,14 @@ Kubernetes components are stateless and store cluster state in [etcd](https://gi
 
 ## Prerequisites
 
-The commands in this lab must be run on each controller instance: `controller-0`, `controller-1`, and `controller-2`. Login to each controller instance using the `gcloud` command. Example:
+The commands in this lab must be run on each controller instance. Retrieve the public ip of the instance and login to each controller instance using the `ssh` command. Example for first controller:
 
 ```
-gcloud compute ssh controller-0
+i = 0
+IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[i]} 
+  --query 'Reservations[].Instances[].PublicIpAddress' \
+  | jq .[0] | sed 's/"//g')
+ssh -i $KEY_PATH ubuntu@$IP
 ```
 
 ## Bootstrapping an etcd Cluster Member
@@ -41,12 +45,7 @@ sudo mkdir -p /etc/etcd /var/lib/etcd
 sudo cp ca.pem kubernetes-key.pem kubernetes.pem /etc/etcd/
 ```
 
-The instance internal IP address will be used to serve client requests and communicate with etcd cluster peers. Retrieve the internal IP address for the current compute instance:
-
-```
-INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
-```
+The instance internal IP address will be used to serve client requests and communicate with etcd cluster peers. Retrieve the internal IP address for the current compute instance and set it as a variable $INTERNAL_IP.
 
 Each etcd member must have a unique name within an etcd cluster. Set the etcd name to match the hostname of the current compute instance:
 
@@ -107,7 +106,7 @@ sudo systemctl enable etcd
 sudo systemctl start etcd
 ```
 
-> Remember to run the above commands on each controller node: `controller-0`, `controller-1`, and `controller-2`.
+> Remember to run the above commands on each controller node.
 
 ## Verification
 
@@ -120,9 +119,9 @@ ETCDCTL_API=3 etcdctl member list
 > output
 
 ```
-3a57933972cb5131, started, controller-2, https://10.240.0.12:2380, https://10.240.0.12:2379
-f98dc20bce6225a0, started, controller-0, https://10.240.0.10:2380, https://10.240.0.10:2379
-ffed16798470cab5, started, controller-1, https://10.240.0.11:2380, https://10.240.0.11:2379
+3a57933972cb5131, started, ip-10-240-0-12, https://10.240.0.12:2380, https://10.240.0.12:2379
+f98dc20bce6225a0, started, ip-10-240-0-10, https://10.240.0.10:2380, https://10.240.0.10:2379
+ffed16798470cab5, started, ip-10-240-0-11, https://10.240.0.11:2380, https://10.240.0.11:2379
 ```
 
 Next: [Bootstrapping the Kubernetes Control Plane](08-bootstrapping-kubernetes-controllers.md)

@@ -116,7 +116,8 @@ Kubernetes uses a [special-purpose authorization mode](https://kubernetes.io/doc
 Generate a certificate and private key for each Kubernetes worker node:
 
 ```
-for instance in worker-0 worker-1 worker-2; do
+for i in 0 1 2; do
+instance=ip-10-240-0-2$i
 cat > ${instance}-csr.json <<EOF
 {
   "CN": "system:node:${instance}",
@@ -136,11 +137,14 @@ cat > ${instance}-csr.json <<EOF
 }
 EOF
 
-EXTERNAL_IP=$(gcloud compute instances describe ${instance} \
-  --format 'value(networkInterfaces[0].accessConfigs[0].natIP)')
+EXTERNAL_IP=$(aws ec2 describe-instances --instance-id ${WORK_ID[i]} \
+  --query 'Reservations[].Instances[].PublicIpAddress' \
+  | jq .[0])
 
-INTERNAL_IP=$(gcloud compute instances describe ${instance} \
-  --format 'value(networkInterfaces[0].networkIP)')
+INTERNAL_IP=$(aws ec2 describe-instances --instance-id ${WORK_ID[i]} \
+  --query 'Reservations[].Instances[].PrivateIpAddress' \
+  | jq .[0])
+
 
 cfssl gencert \
   -ca=ca.pem \
@@ -152,15 +156,17 @@ cfssl gencert \
 done
 ```
 
+> To create the certificates the hostname must be used. In AWS the hostname is derived by the private ip (e.g. ip-10-240-0-20).
+
 Results:
 
 ```
-worker-0-key.pem
-worker-0.pem
-worker-1-key.pem
-worker-1.pem
-worker-2-key.pem
-worker-2.pem
+10-240-0-20-key.pem
+10-240-0-20.pem
+10-240-0-21-key.pem
+10-240-0-21.pem
+10-240-0-22-key.pem
+10-240-0-22.pem
 ```
 
 ### The kube-proxy Client Certificate
@@ -265,16 +271,27 @@ kubernetes.pem
 Copy the appropriate certificates and private keys to each worker instance:
 
 ```
-for instance in worker-0 worker-1 worker-2; do
-  gcloud compute scp ca.pem ${instance}-key.pem ${instance}.pem ${instance}:~/
+for i in 0 1 2; do
+  instance=ip-10-240-0-2$i
+  IP=$(aws ec2 describe-instances --instance-id ${WORK_ID[i]} \
+    --query 'Reservations[].Instances[].PublicIpAddress'\
+    | jq .[0] | sed 's/"//g')
+  scp -i $KEY_PATH -o "StrictHostKeyChecking no" ca.pem ${instance}-key.pem ${instance}.pem ubuntu@$IP:~/
 done
+
+> In $KEY_PATH is stored the path to the AWS private key used for the creation.
+
 ```
 
 Copy the appropriate certificates and private keys to each controller instance:
 
 ```
-for instance in controller-0 controller-1 controller-2; do
-  gcloud compute scp ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem ${instance}:~/
+for instance in 0 1 2; do
+  instance=controller-$i
+  IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[i]} \
+    --query 'Reservations[].Instances[].PublicIpAddress'\
+    | jq .[0] | sed 's/"//g')
+  scp -i $KEY_PATH -o "StrictHostKeyChecking no" ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem ubuntu@$IP:~/
 done
 ```
 

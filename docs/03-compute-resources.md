@@ -1,8 +1,8 @@
 # Provisioning Compute Resources
 
-Kubernetes requires a set of machines to host the Kubernetes control plane and the worker nodes where containers are ultimately run. In this lab you will provision the compute resources required for running a secure and highly available Kubernetes cluster across a single [compute zone](https://cloud.google.com/compute/docs/regions-zones/regions-zones).
+Kubernetes requires a set of machines to host the Kubernetes control plane and the worker nodes where containers are ultimately run. In this lab you will provision the compute resources required for running a secure and highly available Kubernetes cluster across a single [region](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html).
 
-> Ensure a default compute zone and region have been set as described in the [Prerequisites](01-prerequisites.md#set-a-default-compute-region-and-zone) lab.
+> Ensure a default region have been set as described in the [Prerequisites](01-prerequisites.md#set-a-default-compute-region-and-zone) lab. For AWS is not required to specify the availability zone during the resource provisioning. 
 
 ## Networking
 
@@ -12,151 +12,163 @@ The Kubernetes [networking model](https://kubernetes.io/docs/concepts/cluster-ad
 
 ### Virtual Private Cloud Network
 
-In this section a dedicated [Virtual Private Cloud](https://cloud.google.com/compute/docs/networks-and-firewalls#networks) (VPC) network will be setup to host the Kubernetes cluster.
+In this section a dedicated [Virtual Private Cloud](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Introduction.html) (VPC) network will be setup to host the Kubernetes cluster.
+The VPC must be sufficient to allocate the subnets required for each kubernetes nodes.
 
-Create the `kubernetes-the-hard-way` custom VPC network:
-
-```
-gcloud compute networks create kubernetes-the-hard-way --subnet-mode custom
-```
-
-A [subnet](https://cloud.google.com/compute/docs/vpc/#vpc_networks_and_subnets) must be provisioned with an IP address range large enough to assign a private IP address to each node in the Kubernetes cluster.
-
-Create the `kubernetes` subnet in the `kubernetes-the-hard-way` VPC network:
+Create a VPC passing the proper cidr range:
 
 ```
-gcloud compute networks subnets create kubernetes \
-  --network kubernetes-the-hard-way \
-  --range 10.240.0.0/24
+aws ec2 create-vpc --cidr-block 10.240.0.0/16
 ```
+Retrieve the VpcId from the output of the command, we will refer to it as $VPC_ID in the following instructions.
+By default in AWS, VPC doesn't have DNS resolution. Enable the DNS resolution:
+```
+aws ec2 modify-vpc-attribute --vpc-id $VPC_ID --enable-dns-hostnames "{\"Value\":true}"
+``` 
+
+A [subnet](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_Subnets.html) must be provisioned with an IP address range large enough to assign a private IP address to each node in the Kubernetes cluster.
+
+Create a subnet in the previous VPC:
+
+```
+aws ec2 create-subnet --vpc-id $VPC_ID \
+  --cidr-block 10.240.0.0/24
+```
+Retrieve the SubnetId from the output of the command, we will refer to it as $SUBNET_ID in the following instructions.
 
 > The `10.240.0.0/24` IP address range can host up to 254 compute instances.
 
-### Firewall Rules
+### Security Group
+
+In AWS firewall rules are set within security groups. 
+First create the security group `kthw-sg`:
+
+```
+aws ec2 create-security-group --group-name kthw-sg --description "security group for kthw" --vpc-id $VPC_ID
+```
+Retrieve the GroupId from the output of the command, we will refer to it as $SG_ID in the following instructions.
 
 Create a firewall rule that allows internal communication across all protocols:
 
 ```
-gcloud compute firewall-rules create kubernetes-the-hard-way-allow-internal \
-  --allow tcp,udp,icmp \
-  --network kubernetes-the-hard-way \
-  --source-ranges 10.240.0.0/24,10.200.0.0/16
+aws ec2 authorize-security-group-ingress --group-id $SG_ID \
+  --protocol all --cidr 10.200.0.0/16 
 ```
 
-Create a firewall rule that allows external SSH, ICMP, and HTTPS:
+Create the firewall rules that allows external SSH, ICMP, and HTTPS:
 
 ```
-gcloud compute firewall-rules create kubernetes-the-hard-way-allow-external \
-  --allow tcp:22,tcp:6443,icmp \
-  --network kubernetes-the-hard-way \
-  --source-ranges 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 22 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 6443 --cidr 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol icmp --port -1 --cidr 0.0.0.0/0
 ```
 
-> An [external load balancer](https://cloud.google.com/compute/docs/load-balancing/network/) will be used to expose the Kubernetes API Servers to remote clients.
+> A load balancer(TODO) will be used to expose the Kubernetes API Servers to remote clients.
 
-List the firewall rules in the `kubernetes-the-hard-way` VPC network:
-
+In order to enable access via SSH to the nodes, in AWS it is necessary an Internet Gateway for the VPC with the proper routes. 
+Create an internet gateway:
 ```
-gcloud compute firewall-rules list --filter="network:kubernetes-the-hard-way"
+aws ec2 create-internet-gateway 
+```
+Retrieve the InternetGatewayId from the output of the command, we will refer to it as $IGW_ID in the following instructions.
+
+Associate the Internet Gateway to the VPC:
+```
+aws ec2 attach-internet-gateway --vpc-id $VPC_ID --internet-gateway-id $IGW_ID
 ```
 
-> output
-
+Create a route table for the VPC:
 ```
-NAME                                    NETWORK                  DIRECTION  PRIORITY  ALLOW                 DENY
-kubernetes-the-hard-way-allow-external  kubernetes-the-hard-way  INGRESS    1000      tcp:22,tcp:6443,icmp
-kubernetes-the-hard-way-allow-internal  kubernetes-the-hard-way  INGRESS    1000      tcp,udp,icmp
+aws ec2 create-route-table --vpc-id $VPC_ID
+```
+Retrieve the RouteTableId from the output of the command, we will refer to it as $ROUTE_ID in the following instructions.
+
+Create the route to the Internet Gateway:
+```
+aws ec2 create-route --route-table-id $ROUTE_ID --destination-cidr-block 0.0.0.0/0 --gateway-id $IGW_ID
+```
+
+Finally associate the table with the previous subnet:
+```
+aws ec2 associate-route-table  --subnet-id $SUBNET_ID --route-table-id $ROUTE_ID
 ```
 
 ### Kubernetes Public IP Address
+(TODO)
+(In AWS the configuration of the load balancer is more complicated than in GCE and is not feasible allocate a public IP to it).
 
-Allocate a static IP address that will be attached to the external load balancer fronting the Kubernetes API Servers:
-
-```
-gcloud compute addresses create kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region)
-```
-
-Verify the `kubernetes-the-hard-way` static IP address was created in your default compute region:
-
-```
-gcloud compute addresses list --filter="name=('kubernetes-the-hard-way')"
-```
-
-> output
-
-```
-NAME                     REGION    ADDRESS        STATUS
-kubernetes-the-hard-way  us-west1  XX.XXX.XXX.XX  RESERVED
-```
 
 ## Compute Instances
 
 The compute instances in this lab will be provisioned using [Ubuntu Server](https://www.ubuntu.com/server) 16.04, which has good support for the [cri-containerd container runtime](https://github.com/containerd/cri-containerd). Each compute instance will be provisioned with a fixed private IP address to simplify the Kubernetes bootstrapping process.
+> In the below commands the variable `$AMI` will be used for the AMI id of the Ubuntu 16.04. It is suggested to take the last AMI id from the console or via API to have the latest updates. 
+
 
 ### Kubernetes Controllers
 
-Create three compute instances which will host the Kubernetes control plane:
+First we create the instance to host the Kubernetes control plane. In this and the next paragraph the id will be retrieved for each instance and stored in an array variable.
+ 
+Create three compute instances for the controllers:
 
 ```
 for i in 0 1 2; do
-  gcloud compute instances create controller-${i} \
-    --async \
-    --boot-disk-size 200GB \
-    --can-ip-forward \
-    --image-family ubuntu-1604-lts \
-    --image-project ubuntu-os-cloud \
-    --machine-type n1-standard-1 \
-    --private-network-ip 10.240.0.1${i} \
-    --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
-    --subnet kubernetes \
-    --tags kubernetes-the-hard-way,controller
+  aws ec2 run-instances \
+    --image-id $AMI \
+    --count 1 \
+    --instance-type t2.micro \
+    --key-name default-key \
+    --security-group-ids $SG_ID \
+    --subnet-id $SUBNET_ID \
+    --private-ip-address 10.240.0.1${i} \
+    --associate-public-ip-address \
+  | tee out 
+  CONTR_ID[i]=$(cat out | jq '. | .Instances[0].InstanceId' | sed 's/"//g') 
 done
 ```
+The array variable ${CONTR_ID} will contain the ids for the instances created. We will use them later to connect to the instance. 
 
 ### Kubernetes Workers
 
-Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. The pod subnet allocation will be used to configure container networking in a later exercise. The `pod-cidr` instance metadata will be used to expose pod subnet allocations to compute instances at runtime.
-
-> The Kubernetes cluster CIDR range is defined by the Controller Manager's `--cluster-cidr` flag. In this tutorial the cluster CIDR range will be set to `10.200.0.0/16`, which supports 254 subnets.
-
-Create three compute instances which will host the Kubernetes worker nodes:
+You then create the instance to host the Kubernetes worker nodes. Each node will need to propagate the traffic from the pod subnets to the other nodes like a NAT. In AWS for this purpose it is necessary disable the source-dest-check flag.
+Create three compute instances disabling the source-dest-check as before:
 
 ```
 for i in 0 1 2; do
-  gcloud compute instances create worker-${i} \
-    --async \
-    --boot-disk-size 200GB \
-    --can-ip-forward \
-    --image-family ubuntu-1604-lts \
-    --image-project ubuntu-os-cloud \
-    --machine-type n1-standard-1 \
-    --metadata pod-cidr=10.200.${i}.0/24 \
-    --private-network-ip 10.240.0.2${i} \
-    --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
-    --subnet kubernetes \
-    --tags kubernetes-the-hard-way,worker
+  aws ec2 run-instances \
+    --image-id $AMI \
+    --count 1 \
+    --instance-type t2.micro \
+    --key-name default-key \
+    --security-group-ids $SG_ID \
+    --subnet-id $SUBNET_ID \
+    --private-ip-address 10.240.0.2${i} \
+    --associate-public-ip-address \
+  | tee out 
+  WORK_ID[i]=$(cat out | jq '. | .Instances[0].InstanceId' | sed 's/"//g')
+  aws ec2 modify-instance-attribute --instance-id ${WORK_ID[i]} --source-dest-check "{\"Value\": false}"
 done
 ```
+The array variable ${WORK_ID} will contain the ids for the instances created. We will use them later to connect to the instance.
 
 ### Verification
 
 List the compute instances in your default compute zone:
 
+(TODO)
 ```
-gcloud compute instances list
+
 ```
 
 > output
 
 ```
 NAME          ZONE        MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP     STATUS
-controller-0  us-west1-c  n1-standard-1               10.240.0.10  XX.XXX.XXX.XXX  RUNNING
-controller-1  us-west1-c  n1-standard-1               10.240.0.11  XX.XXX.X.XX     RUNNING
-controller-2  us-west1-c  n1-standard-1               10.240.0.12  XX.XXX.XXX.XX   RUNNING
-worker-0      us-west1-c  n1-standard-1               10.240.0.20  XXX.XXX.XXX.XX  RUNNING
-worker-1      us-west1-c  n1-standard-1               10.240.0.21  XX.XXX.XX.XXX   RUNNING
-worker-2      us-west1-c  n1-standard-1               10.240.0.22  XXX.XXX.XX.XX   RUNNING
+10-240-0-10   us-west1-c  n1-standard-1               10.240.0.10  XX.XXX.XXX.XXX  RUNNING
+10-240-0-11   us-west1-c  n1-standard-1               10.240.0.11  XX.XXX.X.XX     RUNNING
+10-240-0-12   us-west1-c  n1-standard-1               10.240.0.12  XX.XXX.XXX.XX   RUNNING
+10-240-0-20   us-west1-c  n1-standard-1               10.240.0.20  XXX.XXX.XXX.XX  RUNNING
+10-240-0-21   us-west1-c  n1-standard-1               10.240.0.21  XX.XXX.XX.XXX   RUNNING
+10-240-0-22   us-west1-c  n1-standard-1               10.240.0.22  XXX.XXX.XX.XX   RUNNING
 ```
 
 Next: [Provisioning a CA and Generating TLS Certificates](04-certificate-authority.md)

@@ -3,11 +3,14 @@
 In this lab you will bootstrap the Kubernetes control plane across three compute instances and configure it for high availability. You will also create an external load balancer that exposes the Kubernetes API Servers to remote clients. The following components will be installed on each node: Kubernetes API Server, Scheduler, and Controller Manager.
 
 ## Prerequisites
-
-The commands in this lab must be run on each controller instance: `controller-0`, `controller-1`, and `controller-2`. Login to each controller instance using the `gcloud` command. Example:
+The commands in this lab must be run on each controller instance. Retrieve the public ip of the instance and login to each controller instance using the `ssh` command. Example for first controller:
 
 ```
-gcloud compute ssh controller-0
+i = 0
+IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[i]} 
+  --query 'Reservations[].Instances[].PublicIpAddress' \
+  | jq .[0] | sed 's/"//g')
+ssh -i $KEY_PATH ubuntu@$IP
 ```
 
 ## Provision the Kubernetes Control Plane
@@ -44,12 +47,7 @@ sudo mkdir -p /var/lib/kubernetes/
 sudo mv ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem encryption-config.yaml /var/lib/kubernetes/
 ```
 
-The instance internal IP address will be used to advertise the API Server to members of the cluster. Retrieve the internal IP address for the current compute instance:
-
-```
-INTERNAL_IP=$(curl -s -H "Metadata-Flavor: Google" \
-  http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip)
-```
+The instance internal IP address will be used to advertise the API Server to members of the cluster. Retrieve the internal IP address for the current compute instance and set it as a variable $INTERNAL_IP:
 
 Create the `kube-apiserver.service` systemd unit file:
 
@@ -189,7 +187,7 @@ etcd-0               Healthy   {"health": "true"}
 etcd-1               Healthy   {"health": "true"}
 ```
 
-> Remember to run the above commands on each controller node: `controller-0`, `controller-1`, and `controller-2`.
+> Remember to run the above commands on each controller node.
 
 ## RBAC for Kubelet Authorization
 
@@ -198,7 +196,10 @@ In this section you will configure RBAC permissions to allow the Kubernetes API 
 > This tutorial sets the Kubelet `--authorization-mode` flag to `Webhook`. Webhook mode uses the [SubjectAccessReview](https://kubernetes.io/docs/admin/authorization/#checking-api-access) API to determine authorization.
 
 ```
-gcloud compute ssh controller-0
+IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} 
+  --query 'Reservations[].Instances[].PublicIpAddress' \
+  | jq .[0] | sed 's/"//g')
+ssh -i $KEY_PATH ubuntu@$IP
 ```
 
 Create the `system:kube-apiserver-to-kubelet` [ClusterRole](https://kubernetes.io/docs/admin/authorization/rbac/#role-and-clusterrole) with permissions to access the Kubelet API and perform most common tasks associated with managing pods:
@@ -250,44 +251,17 @@ EOF
 ```
 
 ## The Kubernetes Frontend Load Balancer
-
-In this section you will provision an external load balancer to front the Kubernetes API Servers. The `kubernetes-the-hard-way` static IP address will be attached to the resulting load balancer.
-
-> The compute instances created in this tutorial will not have permission to complete this section. Run the following commands from the same machine used to create the compute instances.
-
-Create the external load balancer network resources:
-
-```
-gcloud compute target-pools create kubernetes-target-pool
-```
-
-```
-gcloud compute target-pools add-instances kubernetes-target-pool \
-  --instances controller-0,controller-1,controller-2
-```
-
-```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(name)')
-```
-
-```
-gcloud compute forwarding-rules create kubernetes-forwarding-rule \
-  --address ${KUBERNETES_PUBLIC_ADDRESS} \
-  --ports 6443 \
-  --region $(gcloud config get-value compute/region) \
-  --target-pool kubernetes-target-pool
-```
+(TODO)
 
 ### Verification
 
-Retrieve the `kubernetes-the-hard-way` static IP address:
+(TODO To replace with AWS load balancer)
+Retrieve the IP address of the first controller:
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
+  --query 'Reservations[].Instances[].PublicIpAddress'| jq .[0] \
+  | sed 's/"//g')
 ```
 
 Make a HTTP request for the Kubernetes version info:

@@ -1,6 +1,10 @@
 # Kubernetes The Hard Way
 
-This tutorial walks you through setting up Kubernetes the hard way. This guide is not for people looking for a fully automated command to bring up a Kubernetes cluster. If that's you then check out [Google Kubernetes Engine](https://cloud.google.com/kubernetes-engine), or the [Getting Started Guides](http://kubernetes.io/docs/getting-started-guides/).
+This tutorial is a fork of the excellent [Kubernetes the Hard Way](https://github.com/kelseyhightower/kubernetes-the-hard-way) adapted for [Amazon Web Services](https://aws.amazon.com) and the [AWS EC2 API](https://docs.aws.amazon.com/AWSEC2/latest/APIReference).
+AWS and EC2 API have some peculiarities that requires some changes in the tutorial instructions and base architecture. For a detailed explanation of those please refer to (TODO).
+... The fact that AWS doesn't use names in the API but unique ids, suggest to take note or store these ids as soon as the resource is created during the tutorial and retrieved when necessary. In the folder (TODO) are stored some bash scripts that use the command tee and env variables to deal with this...    
+
+This tutorial walks you through setting up Kubernetes the hard way. This guide is not for people looking for a fully automated command to bring up a Kubernetes cluster. If that's you then check out [AWS Elastic Container Services](https://aws.amazon.com/ecs/) or the [Getting Started Guides](http://kubernetes.io/docs/getting-started-guides/).
 
 Kubernetes The Hard Way is optimized for learning, which means taking the long route to ensure you understand each task required to bootstrap a Kubernetes cluster.
 
@@ -21,7 +25,7 @@ Kubernetes The Hard Way guides you through bootstrapping a highly available Kube
 
 ## Labs
 
-This tutorial assumes you have access to the [Google Cloud Platform](https://cloud.google.com). While GCP is used for basic infrastructure requirements the lessons learned in this tutorial can be applied to other platforms.
+This tutorial assumes you have access to the [Amazon Web Services](https://aws.amazon.com). While AWS is used for basic infrastructure requirements the lessons learned in this tutorial can be applied to other platforms.
 
 * [Prerequisites](docs/01-prerequisites.md)
 * [Installing the Client Tools](docs/02-client-tools.md)

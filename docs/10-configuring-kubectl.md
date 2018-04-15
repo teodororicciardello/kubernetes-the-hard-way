@@ -8,12 +8,13 @@ In this lab you will generate a kubeconfig file for the `kubectl` command line u
 
 Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
 
-Retrieve the `kubernetes-the-hard-way` static IP address:
+(TODO To replace with AWS load balancer)
+Retrieve the IP address of the first controller:
 
 ```
-KUBERNETES_PUBLIC_ADDRESS=$(gcloud compute addresses describe kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region) \
-  --format 'value(address)')
+KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
+  --query 'Reservations[].Instances[].PublicIpAddress'| jq .[0] \
+  | sed 's/"//g')
 ```
 
 Generate a kubeconfig file suitable for authenticating as the `admin` user:
@@ -70,9 +71,9 @@ kubectl get nodes
 
 ```
 NAME       STATUS    ROLES     AGE       VERSION
-worker-0   Ready     <none>    1m        v1.9.0
-worker-1   Ready     <none>    1m        v1.9.0
-worker-2   Ready     <none>    1m        v1.9.0
+ip-10-240-0-20   Ready     <none>    1m        v1.9.0
+ip-10-240-0-21   Ready     <none>    1m        v1.9.0
+ip-10-240-0-22   Ready     <none>    1m        v1.9.0
 ```
 
 Next: [Provisioning Pod Network Routes](11-pod-network-routes.md)
