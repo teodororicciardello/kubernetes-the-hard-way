@@ -48,7 +48,13 @@ aws ec2 create-security-group --group-name kthw-sg --description "security group
 ```
 Retrieve the GroupId from the output of the command, we will refer to it as $SG_ID in the following instructions.
 
-Create a firewall rule that allows internal communication across all protocols:
+By default in AWS, VMs in SG cannot communicate each other, so first you need to create that allows internal communications:
+
+```
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol all --source-group $SG_ID 
+```
+
+Create now a firewall rule that allows communication across all protocols for the pods:
 
 ```
 aws ec2 authorize-security-group-ingress --group-id $SG_ID \

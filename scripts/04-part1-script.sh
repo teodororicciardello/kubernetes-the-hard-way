@@ -68,7 +68,7 @@ cfssl gencert \
   -profile=kubernetes \
   admin-csr.json | cfssljson -bare admin
 
-## moved earlierfrom kthw original 
+## moved earlier from kthw original 
 cat > kube-proxy-csr.json <<EOF
 {
   "CN": "system:kube-proxy",

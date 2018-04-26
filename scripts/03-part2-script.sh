@@ -19,7 +19,7 @@ for i in 0 1 2; do
 	--user-data file://controller_bootstrap.sh \
 	| tee out 
 	CONTR_ID[i]=$(cat out | jq '. | .Instances[0].InstanceId' | sed 's/"//g') 
-	#aws ec2 modify-instance-attribute --instance-id ${WORK_ID[i]} --source-dest-check "{\"Value\": false}"
+	#aws ec2 modify-instance-attribute --instance-id ${CONTR_ID[i]} --source-dest-check "{\"Value\": false}"
 done 
 
 ## launch Worker instances 

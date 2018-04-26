@@ -17,6 +17,8 @@ aws ec2 create-security-group --group-name kthw-sg --description "security group
 SG_ID=$(cat out | jq '. | .GroupId'  | sed 's/"//g')
 
 ## create sg rules  
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol all --source-group $SG_ID 
+
 aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol all --cidr 10.200.0.0/16 
 
 aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol tcp --port 22 --cidr 0.0.0.0/0

@@ -8,7 +8,7 @@ The commands in this lab must be run on each controller instance. Retrieve the p
 
 ```
 i = 0
-IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[i]} 
+IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[i]} \
   --query 'Reservations[].Instances[].PublicIpAddress' \
   | jq .[0] | sed 's/"//g')
 ssh -i $KEY_PATH ubuntu@$IP
