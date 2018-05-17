@@ -7,6 +7,7 @@ echo BEGIN
 date '+%Y-%m-%d %H:%M:%S'
 
 # install software
+sudo apt-get update
 sudo apt-get -y install socat
 
 wget -q --https-only --timestamping \
