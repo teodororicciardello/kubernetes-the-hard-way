@@ -2,7 +2,7 @@
 
 ## Amazon Web Services
 
-This tutorial leverages the [Amazon Web Services (AWS)](https://aws.amazon.com/) to streamline provisioning of the compute infrastructure required to bootstrap a Kubernetes cluster from the ground up.
+This tutorial leverages [Amazon Web Services (AWS)](https://aws.amazon.com/) to streamline provisioning of the compute infrastructure required to bootstrap a Kubernetes cluster from the ground up.
 
 > The compute resources required for this tutorial exceed the AWS free tier.
 

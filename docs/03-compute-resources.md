@@ -48,7 +48,7 @@ aws ec2 create-security-group --group-name kthw-sg --description "security group
 ```
 Retrieve the GroupId from the output of the command, we will refer to it as $SG_ID in the following instructions.
 
-By default in AWS, VMs in SG cannot communicate each other, so first you need to create that allows internal communications:
+By default in AWS, VMs in SG cannot communicate each other, so first you need to create rule that allows internal communications:
 
 ```
 aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol all --source-group $SG_ID 
@@ -136,7 +136,7 @@ The array variable ${CONTR_ID} will contain the ids for the instances created. W
 ### Kubernetes Workers
 
 You then create the instance to host the Kubernetes worker nodes. Each node will need to propagate the traffic from the pod subnets to the other nodes like a NAT. In AWS for this purpose it is necessary disable the source-dest-check flag.
-Create three compute instances disabling the source-dest-check as before:
+Create three compute instances disabling the source-dest-check:
 
 ```
 for i in 0 1 2; do

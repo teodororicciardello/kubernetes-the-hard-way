@@ -16,7 +16,7 @@ kubectl create secret generic kubernetes-the-hard-way \
 Print a hexdump of the `kubernetes-the-hard-way` secret stored in etcd:
 
 ```
-IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]}
+IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
   --query 'Reservations[].Instances[].PublicIpAddress' \
   | jq .[0] | sed 's/"//g')
 ssh -i $KEY_PATH ubuntu@$IP "ETCDCTL_API=3 etcdctl \
@@ -102,7 +102,7 @@ curl --head http://127.0.0.1:8080
 
 ```
 HTTP/1.1 200 OK
-Server: nginx/1.13.7
+Server: nginx/1.13.12
 Date: Mon, 18 Dec 2017 14:50:36 GMT
 Content-Type: text/html
 Content-Length: 612
@@ -134,7 +134,7 @@ kubectl logs $POD_NAME
 > output
 
 ```
-127.0.0.1 - - [18/Dec/2017:14:50:36 +0000] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.54.0" "-"
+127.0.0.1 - - [15/May/2018:20:50:36 +0000] "HEAD / HTTP/1.1" 200 0 "-" "curl/7.54.0" "-"
 ```
 
 ### Exec
@@ -150,7 +150,7 @@ kubectl exec -ti $POD_NAME -- nginx -v
 > output
 
 ```
-nginx version: nginx/1.13.7
+nginx version: nginx/1.13.12
 ```
 
 ## Services
@@ -183,7 +183,7 @@ aws ec2 authorize-security-group-ingress \
 Retrieve the external IP address of a worker instance:
 
 ```
-EXTERNAL_IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
+EXTERNAL_IP=$(aws ec2 describe-instances --instance-id ${WORK_ID[0]} \
   --query 'Reservations[].Instances[].PublicIpAddress' \
   | jq .[0] | sed 's/"//g')
 ```
@@ -198,11 +198,11 @@ curl -I http://${EXTERNAL_IP}:${NODE_PORT}
 
 ```
 HTTP/1.1 200 OK
-Server: nginx/1.13.7
-Date: Mon, 18 Dec 2017 14:52:09 GMT
+Server: nginx/1.13.12
+Date: Tue, 15 May 2018 20:52:09 GMT
 Content-Type: text/html
 Content-Length: 612
-Last-Modified: Tue, 21 Nov 2017 14:28:04 GMT
+Last-Modified: Mon, 09 Apr 2018 16:01:09 GMT
 Connection: keep-alive
 ETag: "5a1437f4-264"
 Accept-Ranges: bytes
