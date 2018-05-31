@@ -67,7 +67,7 @@ sudo mv kubectl kube-proxy kubelet /usr/local/bin/
 
 ### Configure CNI Networking
 
-Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. A $POD_CIDR variable will be used to store the range for the pod subnet for each worker configuration. Example for first worker:
+Each worker instance requires a pod subnet allocation from the Kubernetes cluster CIDR range. A $POD_CIDR variable will be used to store the range for the pod subnet for each worker configuration. I.e. for first worker:
 
 ```
 i=0

@@ -26,19 +26,31 @@ for i in 0 1 2; do
 done
 ```
 
-> In AWS the route to the hosts must set using the Interface Id
+> In AWS the route to the hosts must be set using the Interface Id
 
 
 List the routes in the VPC network:
-
-(TODO)
 ```
-
+aws ec2 describe-route-tables --route-table-ids $ROUTE_ID --query \
+  "RouteTables[].Routes[].{DEST: DestinationCidrBlock, GATEWAY: GatewayId, HOP: NetworkInterfaceId, \
+  STATUS: State}" --output table
 ```
 
 > output
 
 ```
+-------------------------------------------------------------------------------
+|                             DescribeRouteTables                             |
++---------------+-------------------------+-------------------------+---------+
+|     DEST      |         GATEWAY         |           HOP           | STATUS  |
++---------------+-------------------------+-------------------------+---------+
+|  10.200.0.0/24|  None                   |  eni-xxxxxxxxxxxxxxxxx  |  active |
+|  10.200.1.0/24|  None                   |  eni-xxxxxxxxxxxxxxxxx  |  active |
+|  10.200.2.0/24|  None                   |  eni-xxxxxxxxxxxxxxxxx  |  active |
+|  10.240.0.0/16|  local                  |  None                   |  active |
+|  0.0.0.0/0    |  igw-xxxxxxxxxxxxxxxxx  |  None                   |  active |
++---------------+-------------------------+-------------------------+---------+
+
 ```
 
 Next: [Deploying the DNS Cluster Add-on](12-dns-addon.md)

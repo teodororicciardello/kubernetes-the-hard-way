@@ -100,6 +100,8 @@ EOF
 
 ### Configure the Kubernetes Controller Manager
 
+The Kubernetes cluster CIDR range is defined by the Controller Manager's --cluster-cidr flag. In this tutorial the cluster CIDR range will be set to 10.200.0.0/16, which supports 254 subnets.
+
 Create the `kube-controller-manager.service` systemd unit file:
 
 ```
@@ -250,19 +252,8 @@ subjects:
 EOF
 ```
 
-## The Kubernetes Frontend Load Balancer
-(TODO)
+## Verification
 
-### Verification
-
-(TODO To replace with AWS load balancer)
-Retrieve the IP address of the first controller:
-
-```
-KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
-  --query 'Reservations[].Instances[].PublicIpAddress'| jq .[0] \
-  | sed 's/"//g')
-```
 
 Make a HTTP request for the Kubernetes version info:
 
