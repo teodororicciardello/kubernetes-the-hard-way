@@ -14,18 +14,20 @@ aws ec2 terminate-instances --instance-ids ${WORK_ID[@]}
 
 ## Networking
 
-(TODO Delete the external load balancer):
-
+Delete the external load balancer:
+```
+aws elb delete-load-balancer --load-balancer-name $LB 
 ```
 
+
+Delete the security groups for load balancer and instances:
+```
+aws ec2 delete-security-group --group-id $SG_LB_ID
+
+aws ec2 delete-security-group --group-id $SG_ID
 ```
 
-(TODO) Delete the security group firewall rules:
-
-```
-```
-
-Delete the Pod network routes:
+Delete the Pod network routes: 
 
 ```
 for i in 0 1 2; do

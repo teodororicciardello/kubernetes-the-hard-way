@@ -26,9 +26,6 @@ cat > kubernetes-csr.json <<EOF
 }
 EOF
 
-## workaround for missing load balancer (TODO)
-KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} --query 'Reservations[].Instances[].PublicIpAddress'| jq .[0] | sed 's/"//g')
-
 cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \

@@ -6,16 +6,8 @@ In this lab you will generate a kubeconfig file for the `kubectl` command line u
 
 ## The Admin Kubernetes Configuration File
 
-Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
+Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
 
-(TODO To replace with AWS load balancer)
-Retrieve the IP address of the first controller:
-
-```
-KUBERNETES_PUBLIC_ADDRESS=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
-  --query 'Reservations[].Instances[].PublicIpAddress'| jq .[0] \
-  | sed 's/"//g')
-```
 
 Generate a kubeconfig file suitable for authenticating as the `admin` user:
 
