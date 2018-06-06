@@ -99,9 +99,8 @@ aws ec2 associate-route-table  --subnet-id $SUBNET_ID --route-table-id $ROUTE_ID
 
 ## Compute Instances
 
-The compute instances in this lab will be provisioned using [Ubuntu Server](https://www.ubuntu.com/server) 16.04, which has good support for the [cri-containerd container runtime](https://github.com/containerd/cri-containerd). Each compute instance will be provisioned with a fixed private IP address to simplify the Kubernetes bootstrapping process.
-> In the below commands the variable `$AMI` will be used for the AMI id of the Ubuntu 16.04. It is suggested to take the last AMI id from the console or via API to have the latest updates. 
-
+The compute instances in this lab will be provisioned using [Ubuntu Server](https://www.ubuntu.com/server) 18.04, which has good support for the [containerd container runtime](https://github.com/containerd/containerd). Each compute instance will be provisioned with a fixed private IP address to simplify the Kubernetes bootstrapping process.
+> In the below commands the variable `$AMI` will be used for the AMI id of the Ubuntu 18.04. It is suggested to take the last AMI id from the console or via API to have the latest updates. 
 
 ### Kubernetes Controllers
 
@@ -218,5 +217,73 @@ LISTENER=6443
 aws ec2 authorize-security-group-ingress --group-id $SG_LB_ID --protocol tcp --port $LISTENER --cidr 0.0.0.0/0
 ```
 
+
+## Configuring SSH Access
+
+SSH will be used to configure the controller and worker instances. When connecting to compute instances for the first time SSH keys will be generated for you and stored in the project or instance metadata as describe in the [connecting to instances](https://cloud.google.com/compute/docs/instances/connecting-to-instance) documentation.
+
+Test SSH access to the `controller-0` compute instances:
+
+```
+gcloud compute ssh controller-0
+```
+
+If this is your first time connecting to a compute instance SSH keys will be generated for you. Enter a passphrase at the prompt to continue:
+
+```
+WARNING: The public SSH key file for gcloud does not exist.
+WARNING: The private SSH key file for gcloud does not exist.
+WARNING: You do not have an SSH key for gcloud.
+WARNING: SSH keygen will be executed to generate a key.
+Generating public/private rsa key pair.
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+```
+
+At this point the generated SSH keys will be uploaded and stored in your project:
+
+```
+Your identification has been saved in /home/$USER/.ssh/google_compute_engine.
+Your public key has been saved in /home/$USER/.ssh/google_compute_engine.pub.
+The key fingerprint is:
+SHA256:nz1i8jHmgQuGt+WscqP5SeIaSy5wyIJeL71MuV+QruE $USER@$HOSTNAME
+The key's randomart image is:
++---[RSA 2048]----+
+|                 |
+|                 |
+|                 |
+|        .        |
+|o.     oS        |
+|=... .o .o o     |
+|+.+ =+=.+.X o    |
+|.+ ==O*B.B = .   |
+| .+.=EB++ o      |
++----[SHA256]-----+
+Updating project ssh metadata...-Updated [https://www.googleapis.com/compute/v1/projects/$PROJECT_ID].
+Updating project ssh metadata...done.
+Waiting for SSH key to propagate.
+```
+
+After the SSH keys have been updated you'll be logged into the `controller-0` instance:
+
+```
+Welcome to Ubuntu 18.04 LTS (GNU/Linux 4.15.0-1006-gcp x86_64)
+
+...
+
+Last login: Sun May 13 14:34:27 2018 from XX.XXX.XXX.XX
+```
+
+Type `exit` at the prompt to exit the `controller-0` compute instance:
+
+```
+$USER@controller-0:~$ exit
+```
+> output
+
+```
+logout
+Connection to XX.XXX.XXX.XXX closed
+```
 
 Next: [Provisioning a CA and Generating TLS Certificates](04-certificate-authority.md)
