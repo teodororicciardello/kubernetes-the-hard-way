@@ -10,7 +10,7 @@ This tutorial leverages [Amazon Web Services (AWS)](https://aws.amazon.com/) to 
 
 ### Install the AWS CLI
 
-Follow the Amazon CLI [documentation](https://aws.amazon.com/cli/) to install and configure the `aws` command line utility.
+Follow the Amazon CLI [documentation](https://docs.aws.amazon.com/cli/latest/userguide/installing.html) to install and configure the `aws` command line utility.
 
 Verify the AWS CLI version is 1.14.27 or higher:
 
@@ -31,10 +31,22 @@ aws configure
 Otherwise set a default compute region:
 
 ```
-aws configure set default.region us-west-2
+aws configure set default.region eu-west-1
 ```
 
 > Use the `aws ec2 describe-regions --output table` command to view additional regions.
+
+## Extract ids from json output with jq 
+
+[jq](https://stedolan.github.io/jq/) is a JSON processor that will be used to extract the ids from the aws cli output. The tool is not strictly needed to execute the tutorial as the ids can be retrieved also manually from the output. 
+To install jq follow the instructions for your system from the [download](https://stedolan.github.io/jq/download/) link.
+
+Verify the jq version is 1.5 or higher:
+
+```
+jq --version
+```
+
 
 ## Running Commands in Parallel with tmux
 
@@ -45,5 +57,7 @@ aws configure set default.region us-west-2
 ![tmux screenshot](images/tmux-screenshot.png)
 
 > Enable `synchronize-panes`: `ctrl+b` then `shift :`. Then type `set synchronize-panes on` at the prompt. To disable synchronization: `set synchronize-panes off`.
+
+
 
 Next: [Installing the Client Tools](02-client-tools.md)

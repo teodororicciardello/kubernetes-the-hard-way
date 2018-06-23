@@ -8,7 +8,7 @@ The commands in this lab must be run on each worker instance. Retrieve the publi
 
 ```
 i = 0
-IP=$(aws ec2 describe-instances --instance-id ${WORK_ID[0]}
+IP=$(aws ec2 describe-instances --instance-id ${WORK_ID[0]} \
   --query 'Reservations[].Instances[].PublicIpAddress' \
   | jq .[0] | sed 's/"//g')
 ssh -i $KEY_PATH ubuntu@$IP
@@ -279,20 +279,13 @@ EOF
 
 ## Verification
 
-Login to one of the controller nodes:
-
-```
-IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]}
-  --query 'Reservations[].Instances[].PublicIpAddress' \
-  | jq .[0] | sed 's/"//g')
-ssh -i $KEY_PATH ubuntu@$IP
-```
-
 List the registered Kubernetes nodes:
 
 ```
-gcloud compute ssh controller-0 \
-  --command "kubectl get nodes --kubeconfig admin.kubeconfig"
+IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
+  --query 'Reservations[].Instances[].PublicIpAddress' \
+  | jq .[0] | sed 's/"//g')
+ssh -i $KEY_PATH ubuntu@$IP "kubectl get nodes --kubeconfig admin.kubeconfig"
 ```
 
 > output

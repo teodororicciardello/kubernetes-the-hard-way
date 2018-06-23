@@ -302,6 +302,9 @@ The load balancer address `$KUBERNETES_PUBLIC_ADDRESS` will be included in the l
 
 Generate the Kubernetes API Server certificate and private key:
 
+```
+{
+
 cat > kubernetes-csr.json <<EOF
 {
   "CN": "kubernetes",
@@ -397,10 +400,10 @@ for i in 0 1 2; do
     | jq .[0] | sed 's/"//g')
   scp -i $KEY_PATH -o "StrictHostKeyChecking no" ca.pem ${instance}-key.pem ${instance}.pem ubuntu@$IP:~/
 done
-
-> In $KEY_PATH is stored the path to the AWS private key used for the creation.
-
 ```
+
+> In `$KEY_PATH` is stored the path to the AWS private key. See the [Configuring SSH Access](03-compute-resources.md#Configuring SSH Access) in the Provisioning Compute Resources lab.
+
 
 Copy the appropriate certificates and private keys to each controller instance:
 
@@ -410,7 +413,8 @@ for instance in 0 1 2; do
   IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[i]} \
     --query 'Reservations[].Instances[].PublicIpAddress'\
     | jq .[0] | sed 's/"//g')
-  scp -i $KEY_PATH -o "StrictHostKeyChecking no" ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem ubuntu@$IP:~/
+  scp -i $KEY_PATH -o "StrictHostKeyChecking no" ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem \
+    service-account-key.pem service-account.pem ubuntu@$IP:~/
 done
 ```
 

@@ -2,7 +2,7 @@
 
 This tutorial is a fork of the excellent [Kubernetes the Hard Way](https://github.com/kelseyhightower/kubernetes-the-hard-way) adapted for [Amazon Web Services](https://aws.amazon.com) and the [AWS EC2 API](https://docs.aws.amazon.com/AWSEC2/latest/APIReference).
 AWS and EC2 API have some peculiarities that requires some changes in the tutorial instructions and base architecture. For a detailed explanation of those please refer to (TODO).
-The fact that AWS doesn't use names in the API but unique ids, suggest to take note or store these ids as soon as the resource is created during the tutorial and retrieved them when necessary. In the folder `scripts` are available some bash scripts that use the command tee and jq to store the ids.     
+The fact that AWS doesn't use names in the API but unique ids suggests to take note or store these ids as soon as the resource is created during the tutorial in order to retrieve them when necessary. In the folder `scripts` are available some bash scripts that use `tee` and `jq` to store the ids.     
 
 This tutorial walks you through setting up Kubernetes the hard way. This guide is not for people looking for a fully automated command to bring up a Kubernetes cluster. If that's you then check out [AWS Elastic Container Services](https://aws.amazon.com/ecs/) or the [Getting Started Guides](http://kubernetes.io/docs/getting-started-guides/).
 

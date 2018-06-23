@@ -20,8 +20,8 @@ Create a VPC passing the proper cidr range:
 ```
 aws ec2 create-vpc --cidr-block 10.240.0.0/16
 ```
-Retrieve the VpcId from the output of the command, it will be referred to it as $VPC_ID in the following instructions.
-By default in AWS, VPC doesn't have DNS resolution. Enable the DNS resolution:
+Retrieve the `VpcId` from the output of the command, it will be referred to it as $VPC_ID in the following instructions.
+By default in AWS VPC doesn't have DNS resolution. Enable the DNS resolution:
 ```
 aws ec2 modify-vpc-attribute --vpc-id $VPC_ID --enable-dns-hostnames "{\"Value\":true}"
 ``` 
@@ -34,7 +34,7 @@ Create a subnet in the previous VPC:
 aws ec2 create-subnet --vpc-id $VPC_ID \
   --cidr-block 10.240.0.0/24
 ```
-Retrieve the SubnetId from the output of the command, it will be referred to it as $SUBNET_ID in the following instructions.
+Retrieve the `SubnetId` from the output of the command, it will be referred to it as $SUBNET_ID in the following instructions.
 
 > The `10.240.0.0/24` IP address range can host up to 254 compute instances.
 
@@ -46,7 +46,7 @@ First create the security group `kthw-sg`:
 ```
 aws ec2 create-security-group --group-name kthw-sg --description "security group for kthw" --vpc-id $VPC_ID
 ```
-Retrieve the GroupId from the output of the command, it will be referred to it as $SG_ID in the following instructions.
+Retrieve the `GroupId` from the output of the command, it will be referred to it as $SG_ID in the following instructions.
 
 By default in AWS, VMs in SG cannot communicate each other, so first you need to create rule that allows internal communications:
 
@@ -70,11 +70,12 @@ aws ec2 authorize-security-group-ingress --group-id $SG_ID --protocol icmp --por
 ```
 
 In order to enable access via SSH to the nodes, in AWS it is necessary an Internet Gateway for the VPC with the proper routes. 
+
 Create an internet gateway:
 ```
 aws ec2 create-internet-gateway 
 ```
-Retrieve the InternetGatewayId from the output of the command, it will be referred to it as $IGW_ID in the following instructions.
+Retrieve the `InternetGatewayId` from the output of the command, it will be referred to it as $IGW_ID in the following instructions.
 
 Associate the Internet Gateway to the VPC:
 ```
@@ -85,7 +86,7 @@ Create a route table for the VPC:
 ```
 aws ec2 create-route-table --vpc-id $VPC_ID
 ```
-Retrieve the RouteTableId from the output of the command, it will be referred to it as $ROUTE_ID in the following instructions.
+Retrieve the `RouteTableId` from the output of the command, it will be referred to it as $ROUTE_ID in the following instructions.
 
 Create the route to the Internet Gateway:
 ```
@@ -102,9 +103,20 @@ aws ec2 associate-route-table  --subnet-id $SUBNET_ID --route-table-id $ROUTE_ID
 The compute instances in this lab will be provisioned using [Ubuntu Server](https://www.ubuntu.com/server) 18.04, which has good support for the [containerd container runtime](https://github.com/containerd/containerd). Each compute instance will be provisioned with a fixed private IP address to simplify the Kubernetes bootstrapping process.
 > In the below commands the variable `$AMI` will be used for the AMI id of the Ubuntu 18.04. It is suggested to take the last AMI id from the console or via API to have the latest updates. 
 
+### Prepare SSH Access
+
+In AWS during the provisioning of the machine must be selected the private key that will be used to access the machine. 
+
+In order to create the key the first time follow the instructions on [EC2 Key Pairs](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html).
+Once you have created the key pair download it and store it locally. 
+
+In the below and the following instructions will be assumed the key pair `default-key` stored locally in the path referenced as `KEY_PATH="~/default-key.pem"`. Ensure to modify accordingly key and path for your needs. 
+
+
 ### Kubernetes Controllers
 
-First you create the instance to host the Kubernetes control plane. In this and the next paragraph the id will be retrieved for each instance and stored in an array variable.
+First you create the instances to host the Kubernetes control plane. 
+> In this and the next paragraph the id will be retrieved for each instance and stored in an array variable.
  
 Create three compute instances for the controllers:
 
@@ -127,7 +139,8 @@ The array variable ${CONTR_ID} will contain the ids for the instances created. I
 
 ### Kubernetes Workers
 
-You then create the instance to host the Kubernetes worker nodes. Each node will need to propagate the traffic from the pod subnets to the other nodes like a NAT. In AWS for this purpose it is necessary disable the source-dest-check flag.
+You then create the instance to host the Kubernetes worker nodes. Each node will need to propagate the traffic from the pod subnets to the other nodes like a NAT. In AWS for this purpose it is necessary to disable the source-dest-check flag.
+
 Create three compute instances disabling the source-dest-check:
 
 ```
@@ -178,9 +191,9 @@ aws ec2 describe-instances --query "Reservations[*].Instances[*].{ZONE: Placemen
 ## The Kubernetes Frontend Load Balancer
 In this section you will provision an external load balancer to front the Kubernetes API Servers.
 
-### Provision an External Load Balancer
+### Provision an External Load Balancer 
 
-An AWS [Elastic Load Balancer (LB)](https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/what-is-load-balancing.html) will be used to distribute traffic across the three API servers and allow each API server to terminate TLS connections and validate client certificates. 
+An AWS [Elastic Load Balancer ](https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/what-is-load-balancing.html) (LB) will be used to distribute traffic across the three API servers and to allow each API server to terminate TLS connections and validate client certificates. 
 
 Create a `kthw-lb` LB passing the subnet and defining a listener on port 6443:
 ```
@@ -189,11 +202,13 @@ aws elb create-load-balancer --load-balancer-name $LB --subnets $SUBNET_ID \
   --listeners "Protocol=tcp,LoadBalancerPort=6443,InstanceProtocol=tcp,InstancePort=6443" 
 ```
 
-Retrieve the DNSName from the output of the command, it will be referred to it as $KUBERNETES_PUBLIC_ADDRESS in the following instructions.
+Retrieve the `DNSName` from the output of the command, it will be referred to it as $KUBERNETES_PUBLIC_ADDRESS in the following instructions.
 
 ### Enable HTTP Health Checks
 
-The AWS load balancer supports HTTPS health checks so the HTTPS endpoint of the API server can be used also as health check for the instances. Configure the health check for the LB for HTTPS protocol on port 6443:
+The AWS load balancer supports HTTPS health checks so the HTTPS endpoint of the API server can be used also as health check for the instances. 
+
+Configure the health check for the LB for HTTPS protocol on port 6443:
 ```
 aws elb configure-health-check --load-balancer-name $LB --health-check Target=HTTPS:6443/version,Interval=30,UnhealthyThreshold=2,HealthyThreshold=2,Timeout=3
 ```
@@ -203,87 +218,19 @@ Register the controller instances with the LB:
 aws elb register-instances-with-load-balancer --load-balancer-name $LB --instances ${CONTR_ID[@]}
 ```
 
-Finally create a security group specifically for the LB and set the rule for port 6443:
+Finally create a security group specifically for the LB:
 ```
 aws ec2 create-security-group --group-name LBGroup --description "LB kthw security group" --vpc-id $VPC_ID 
 SG_LB_ID=$(cat out | jq '. | .GroupId' | sed 's/"//g')
 ```
-Retrieve the GroupId from the output of the command, it will be referred to it as $SG_LB_ID in the following instructions.
+Retrieve the `GroupId` from the output of the command, it will be referred to it as $SG_LB_ID in the following instructions.
 
+Apply the group to the LB and set the access rule for port 6443:
 ```
 aws elb apply-security-groups-to-load-balancer --load-balancer-name $LB --security-groups $SG_LB_ID 
 
 LISTENER=6443
 aws ec2 authorize-security-group-ingress --group-id $SG_LB_ID --protocol tcp --port $LISTENER --cidr 0.0.0.0/0
-```
-
-
-## Configuring SSH Access
-
-SSH will be used to configure the controller and worker instances. When connecting to compute instances for the first time SSH keys will be generated for you and stored in the project or instance metadata as describe in the [connecting to instances](https://cloud.google.com/compute/docs/instances/connecting-to-instance) documentation.
-
-Test SSH access to the `controller-0` compute instances:
-
-```
-gcloud compute ssh controller-0
-```
-
-If this is your first time connecting to a compute instance SSH keys will be generated for you. Enter a passphrase at the prompt to continue:
-
-```
-WARNING: The public SSH key file for gcloud does not exist.
-WARNING: The private SSH key file for gcloud does not exist.
-WARNING: You do not have an SSH key for gcloud.
-WARNING: SSH keygen will be executed to generate a key.
-Generating public/private rsa key pair.
-Enter passphrase (empty for no passphrase):
-Enter same passphrase again:
-```
-
-At this point the generated SSH keys will be uploaded and stored in your project:
-
-```
-Your identification has been saved in /home/$USER/.ssh/google_compute_engine.
-Your public key has been saved in /home/$USER/.ssh/google_compute_engine.pub.
-The key fingerprint is:
-SHA256:nz1i8jHmgQuGt+WscqP5SeIaSy5wyIJeL71MuV+QruE $USER@$HOSTNAME
-The key's randomart image is:
-+---[RSA 2048]----+
-|                 |
-|                 |
-|                 |
-|        .        |
-|o.     oS        |
-|=... .o .o o     |
-|+.+ =+=.+.X o    |
-|.+ ==O*B.B = .   |
-| .+.=EB++ o      |
-+----[SHA256]-----+
-Updating project ssh metadata...-Updated [https://www.googleapis.com/compute/v1/projects/$PROJECT_ID].
-Updating project ssh metadata...done.
-Waiting for SSH key to propagate.
-```
-
-After the SSH keys have been updated you'll be logged into the `controller-0` instance:
-
-```
-Welcome to Ubuntu 18.04 LTS (GNU/Linux 4.15.0-1006-gcp x86_64)
-
-...
-
-Last login: Sun May 13 14:34:27 2018 from XX.XXX.XXX.XX
-```
-
-Type `exit` at the prompt to exit the `controller-0` compute instance:
-
-```
-$USER@controller-0:~$ exit
-```
-> output
-
-```
-logout
-Connection to XX.XXX.XXX.XXX closed
 ```
 
 Next: [Provisioning a CA and Generating TLS Certificates](04-certificate-authority.md)
