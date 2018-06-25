@@ -19,8 +19,13 @@ Print a hexdump of the `kubernetes-the-hard-way` secret stored in etcd:
 IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[0]} \
   --query 'Reservations[].Instances[].PublicIpAddress' \
   | jq .[0] | sed 's/"//g')
-ssh -i $KEY_PATH ubuntu@$IP "ETCDCTL_API=3 etcdctl \
-  get /registry/secrets/default/kubernetes-the-hard-way | hexdump -C"
+ssh -i $KEY_PATH ubuntu@$IP "sudo ETCDCTL_API=3 etcdctl get \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/etcd/ca.pem \
+  --cert=/etc/etcd/kubernetes.pem \
+  --key=/etc/etcd/kubernetes-key.pem\
+  /registry/secrets/default/kubernetes-the-hard-way | hexdump -C"
+  
 ```
 
 > output
@@ -238,24 +243,29 @@ Verify the `untrusted` pod is running:
 ```
 kubectl get pods -o wide
 ```
+
 ```
 NAME                       READY     STATUS    RESTARTS   AGE       IP           NODE
-busybox-68654f944b-djjjb   1/1       Running   0          5m        10.200.0.2   worker-0
-nginx-65899c769f-xkfcn     1/1       Running   0          4m        10.200.1.2   worker-1
-untrusted                  1/1       Running   0          10s       10.200.0.3   worker-0
+busybox-68654f944b-djjjb   1/1       Running   0          5m        10.200.0.2   ip-10-240-0-20
+nginx-65899c769f-xkfcn     1/1       Running   0          4m        10.200.1.2   ip-10-240-0-21
+untrusted                  1/1       Running   0          10s       10.200.0.3   ip-10-240-0-20
 ```
 
 
-Get the node name where the `untrusted` pod is running:
+Get the node where the `untrusted` pod is running:
 
 ```
-INSTANCE_NAME=$(kubectl get pod untrusted --output=jsonpath='{.spec.nodeName}')
+i=$(kubectl get pod untrusted --output=json | jq .spec.nodeName[-1:] | sed 's/"//g') 
+
+INSTANCE_IP=$(aws ec2 describe-instances --instance-id ${WORK_ID[i]} \
+  --query 'Reservations[].Instances[].PublicIpAddress' \
+  | jq .[0] | sed 's/"//g')
 ```
 
 SSH into the worker node:
 
 ```
-gcloud compute ssh ${INSTANCE_NAME}
+ssh -i $KEY_PATH ubuntu@$INSTANCE_IP
 ```
 
 List the containers running under gVisor:

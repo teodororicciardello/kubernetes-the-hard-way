@@ -1,7 +1,7 @@
 #! /bin/bash
 
 ## Variable for server AMI 
-AMI=ami-f90a4880
+AMI=ami-394f4b40
 
 ### Create VMs
 

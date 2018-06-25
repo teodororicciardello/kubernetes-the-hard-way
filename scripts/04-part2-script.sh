@@ -81,7 +81,7 @@ done
 for i in 0 1 2; do
   instance=controller-$i
   IP=$(aws ec2 describe-instances --instance-id ${CONTR_ID[i]} --query 'Reservations[].Instances[].PublicIpAddress'| jq .[0] | sed 's/"//g')
-  scp -i $KEY_PATH -o "StrictHostKeyChecking no" ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem ubuntu@$IP:~/
+  scp -i $KEY_PATH -o "StrictHostKeyChecking no" ca.pem ca-key.pem kubernetes-key.pem kubernetes.pem service-account-key.pem service-account.pem ubuntu@$IP:~/
 done
 
 
